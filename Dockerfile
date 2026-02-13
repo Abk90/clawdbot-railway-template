@@ -46,7 +46,12 @@ ENV NODE_ENV=production
 RUN apt-get update \
   && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
     ca-certificates \
+    curl \
+    iptables \
   && rm -rf /var/lib/apt/lists/*
+
+# Install Tailscale
+RUN curl -fsSL https://tailscale.com/install.sh | sh
 
 # `openclaw update` expects pnpm. Provide it in the runtime image.
 RUN corepack enable && corepack prepare pnpm@10.23.0 --activate
@@ -65,6 +70,10 @@ RUN printf '%s\n' '#!/usr/bin/env bash' 'exec node /openclaw/dist/entry.js "$@"'
   && chmod +x /usr/local/bin/openclaw
 
 COPY src ./src
+
+# Copy and set up Tailscale start script
+COPY start-with-tailscale.sh ./start-with-tailscale.sh
+RUN chmod +x ./start-with-tailscale.sh
 
 # The wrapper listens on this port.
 ENV OPENCLAW_PUBLIC_PORT=8080
