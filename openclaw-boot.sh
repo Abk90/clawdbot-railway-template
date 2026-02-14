@@ -42,6 +42,11 @@ echo "[boot] Checking for OpenClaw updates..."
 CURRENT_VERSION=$(openclaw --version 2>/dev/null || echo "unknown")
 echo "[boot] Current version: $CURRENT_VERSION"
 
+# Clean the dirty git state left by Dockerfile patches so openclaw update can work
+cd /openclaw
+git checkout -- . 2>/dev/null || true
+cd /app
+
 if openclaw update 2>&1; then
   NEW_VERSION=$(openclaw --version 2>/dev/null || echo "unknown")
   if [ "$CURRENT_VERSION" != "$NEW_VERSION" ]; then
