@@ -25,11 +25,12 @@ if [ -n "$TS_AUTHKEY" ]; then
     sleep 1
   done
 
-  # Bring up Tailscale
+  # Bring up Tailscale (--reset to avoid conflicts with persisted state)
   echo "[tailscale] Connecting to Tailscale network..."
   tailscale up \
     --authkey="$TS_AUTHKEY" \
-    --hostname="${TS_HOSTNAME:-openclaw-railway}"
+    --hostname="${TS_HOSTNAME:-openclaw-railway}" \
+    --reset
 
   TS_IP=$(tailscale ip -4 2>/dev/null || echo "pending")
   echo "[tailscale] Connected! IP: $TS_IP"
