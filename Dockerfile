@@ -71,9 +71,10 @@ RUN printf '%s\n' '#!/usr/bin/env bash' 'exec node /openclaw/dist/entry.js "$@"'
 
 COPY src ./src
 
-# Copy and set up Tailscale start script
+# Copy and set up start scripts
 COPY start-with-tailscale.sh ./start-with-tailscale.sh
-RUN chmod +x ./start-with-tailscale.sh
+COPY openclaw-boot.sh ./openclaw-boot.sh
+RUN chmod +x ./start-with-tailscale.sh ./openclaw-boot.sh
 
 # The wrapper listens on this port.
 ENV OPENCLAW_PUBLIC_PORT=8080
