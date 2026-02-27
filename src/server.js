@@ -133,6 +133,20 @@ function isConfigured() {
   }
 }
 
+/**
+ * Build an allowedOrigins list from Railway env vars so the Control UI
+ * can connect from the public domain without "origin not allowed" errors.
+ */
+async function setAllowedOrigins() {
+  const domain = process.env.RAILWAY_PUBLIC_DOMAIN?.trim();
+  if (!domain) return;
+  const origins = [`https://${domain}`];
+  await runCmd(
+    OPENCLAW_NODE,
+    clawArgs(["config", "set", "--json", "gateway.controlUi.allowedOrigins", JSON.stringify(origins)]),
+  );
+}
+
 let gatewayProc = null;
 let gatewayStarting = null;
 
@@ -693,6 +707,9 @@ app.post("/setup/api/run", requireSetupAuth, async (req, res) => {
     await runCmd(OPENCLAW_NODE, clawArgs(["config", "set", "gateway.bind", "loopback"]));
     await runCmd(OPENCLAW_NODE, clawArgs(["config", "set", "gateway.port", String(INTERNAL_GATEWAY_PORT)]));
 
+    // Allow the Railway public domain to connect to the Control UI (fixes "origin not allowed").
+    await setAllowedOrigins();
+
     // Optional: configure a custom OpenAI-compatible provider (base URL) for advanced users.
     if (payload.customProviderId?.trim() && payload.customProviderBaseUrl?.trim()) {
       const providerId = payload.customProviderId.trim();
@@ -1249,6 +1266,8 @@ const server = app.listen(PORT, "0.0.0.0", async () => {
   if (isConfigured()) {
     console.log("[wrapper] config detected; starting gateway...");
     try {
+      // Ensure the Railway public domain is in allowedOrigins before each boot.
+      await setAllowedOrigins();
       await ensureGatewayRunning();
       console.log("[wrapper] gateway ready");
     } catch (err) {
