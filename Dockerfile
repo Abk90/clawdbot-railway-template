@@ -22,7 +22,7 @@ WORKDIR /openclaw
 
 # Pin to a known-good ref (tag/branch). Override in Railway template settings if needed.
 # Using a released tag avoids build breakage when `main` temporarily references unpublished packages.
-ARG OPENCLAW_GIT_REF=v2026.2.13
+ARG OPENCLAW_GIT_REF=v2026.2.26
 RUN git clone --depth 1 --branch "${OPENCLAW_GIT_REF}" https://github.com/openclaw/openclaw.git .
 
 # Patch: relax version requirements for packages that may reference unpublished versions.
@@ -34,6 +34,8 @@ RUN set -eux; \
   done
 
 RUN pnpm install --no-frozen-lockfile
+# Ensure transitive ESM deps (like strip-ansi) are reachable by all packages
+RUN pnpm add -w strip-ansi || true
 RUN pnpm build
 ENV OPENCLAW_PREFER_PNPM=1
 RUN pnpm ui:install && pnpm ui:build

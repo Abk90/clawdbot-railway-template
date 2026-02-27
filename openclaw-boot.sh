@@ -48,6 +48,12 @@ git checkout -- . 2>/dev/null || true
 cd /app
 
 if openclaw update 2>&1; then
+  # Re-install deps after update to resolve any missing transitive packages
+  echo "[boot] Re-resolving dependencies after update..."
+  cd /openclaw
+  pnpm install --no-frozen-lockfile 2>&1 || true
+  cd /app
+
   NEW_VERSION=$(openclaw --version 2>/dev/null || echo "unknown")
   if [ "$CURRENT_VERSION" != "$NEW_VERSION" ]; then
     echo "[boot] Updated from $CURRENT_VERSION to $NEW_VERSION"
