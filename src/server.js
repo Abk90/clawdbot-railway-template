@@ -145,6 +145,11 @@ async function setAllowedOrigins() {
     OPENCLAW_NODE,
     clawArgs(["config", "set", "--json", "gateway.controlUi.allowedOrigins", JSON.stringify(origins)]),
   );
+  // Trust the loopback proxy so the gateway accepts forwarded headers.
+  await runCmd(
+    OPENCLAW_NODE,
+    clawArgs(["config", "set", "--json", "gateway.trustedProxies", JSON.stringify(["loopback"])]),
+  );
 }
 
 let gatewayProc = null;
@@ -161,7 +166,7 @@ function sleep(ms) {
 }
 
 async function waitForGatewayReady(opts = {}) {
-  const timeoutMs = opts.timeoutMs ?? 20_000;
+  const timeoutMs = opts.timeoutMs ?? 45_000;
   const start = Date.now();
   while (Date.now() - start < timeoutMs) {
     try {
