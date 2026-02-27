@@ -45,12 +45,15 @@ echo "[boot] Current version: $CURRENT_VERSION"
 # Clean the dirty git state left by Dockerfile patches so openclaw update can work
 cd /openclaw
 git checkout -- . 2>/dev/null || true
+# Ensure public hoisting for undeclared transitive deps (strip-ansi etc.)
+grep -q 'public-hoist-pattern' .npmrc 2>/dev/null || echo 'public-hoist-pattern[]=*' >> .npmrc
 cd /app
 
 if openclaw update 2>&1; then
   # Re-install deps after update to resolve any missing transitive packages
   echo "[boot] Re-resolving dependencies after update..."
   cd /openclaw
+  grep -q 'public-hoist-pattern' .npmrc 2>/dev/null || echo 'public-hoist-pattern[]=*' >> .npmrc
   pnpm install --no-frozen-lockfile 2>&1 || true
   cd /app
 

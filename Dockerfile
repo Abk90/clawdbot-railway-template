@@ -33,9 +33,10 @@ RUN set -eux; \
     sed -i -E 's/"openclaw"[[:space:]]*:[[:space:]]*"workspace:[^"]+"/"openclaw": "*"/g' "$f"; \
   done
 
+# Hoist undeclared transitive deps (e.g. strip-ansi used by pi-coding-agent)
+# so they are reachable under pnpm's strict resolution.
+RUN echo 'public-hoist-pattern[]=*' >> .npmrc
 RUN pnpm install --no-frozen-lockfile
-# Ensure transitive ESM deps (like strip-ansi) are reachable by all packages
-RUN pnpm add -w strip-ansi || true
 RUN pnpm build
 ENV OPENCLAW_PREFER_PNPM=1
 RUN pnpm ui:install && pnpm ui:build
