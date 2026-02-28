@@ -45,6 +45,24 @@ echo "[boot] OpenClaw version: $CURRENT_VERSION"
 # .npmrc hoisting config). Version upgrades are managed via Dockerfile
 # OPENCLAW_GIT_REF and redeployed through Railway.
 
+# --- 2b. Session cleanup (prevents OOM from bloated sessions) ---
+OC_STATE="${OPENCLAW_STATE_DIR:-${CLAWDBOT_STATE_DIR:-/data/.clawdbot}}"
+if [ "${OPENCLAW_PURGE_SESSIONS:-}" = "1" ]; then
+  echo "[boot] OPENCLAW_PURGE_SESSIONS=1 — purging session data to prevent OOM..."
+  # Preserve config, token, canvas, and credentials. Remove everything else
+  # (sessions, caches, logs) that could cause memory bloat on reload.
+  for d in "$OC_STATE"/sessions "$OC_STATE"/cache "$OC_STATE"/logs; do
+    if [ -d "$d" ]; then
+      echo "[boot]   removing $d"
+      rm -rf "$d"
+    fi
+  done
+  # Also remove any session state embedded in the data directory
+  find "$OC_STATE" -maxdepth 2 -name "*.session" -delete 2>/dev/null || true
+  find "$OC_STATE" -maxdepth 2 -name "session-*.json" -delete 2>/dev/null || true
+  echo "[boot] Session purge complete."
+fi
+
 # --- 3. Start the wrapper server ---
 echo "[boot] Starting OpenClaw wrapper server..."
 exec node /app/src/server.js
