@@ -49,18 +49,38 @@ echo "[boot] OpenClaw version: $CURRENT_VERSION"
 OC_STATE="${OPENCLAW_STATE_DIR:-${CLAWDBOT_STATE_DIR:-/data/.clawdbot}}"
 if [ "${OPENCLAW_PURGE_SESSIONS:-}" = "1" ]; then
   echo "[boot] OPENCLAW_PURGE_SESSIONS=1 — purging session data to prevent OOM..."
-  # Preserve config, token, canvas, and credentials. Remove everything else
-  # (sessions, caches, logs) that could cause memory bloat on reload.
-  for d in "$OC_STATE"/sessions "$OC_STATE"/cache "$OC_STATE"/logs; do
-    if [ -d "$d" ]; then
-      echo "[boot]   removing $d"
-      rm -rf "$d"
-    fi
+  echo "[boot] State dir contents before purge:"
+  ls -la "$OC_STATE/" 2>/dev/null || true
+  du -sh "$OC_STATE"/* 2>/dev/null || true
+
+  # Keep ONLY: config files (*.json at root), gateway.token, canvas/, credentials/
+  # Remove everything else that could hold session data.
+  for item in "$OC_STATE"/*; do
+    base=$(basename "$item")
+    case "$base" in
+      *.json|gateway.token|canvas|credentials|whatsapp-auth|telegram-auth)
+        echo "[boot]   keeping $base"
+        ;;
+      *)
+        echo "[boot]   removing $base"
+        rm -rf "$item"
+        ;;
+    esac
   done
-  # Also remove any session state embedded in the data directory
-  find "$OC_STATE" -maxdepth 2 -name "*.session" -delete 2>/dev/null || true
-  find "$OC_STATE" -maxdepth 2 -name "session-*.json" -delete 2>/dev/null || true
+  # Also handle hidden dirs (but not . or ..)
+  for item in "$OC_STATE"/.*; do
+    base=$(basename "$item")
+    case "$base" in
+      .|..) continue ;;
+      *)
+        echo "[boot]   removing hidden: $base"
+        rm -rf "$item"
+        ;;
+    esac
+  done
   echo "[boot] Session purge complete."
+  echo "[boot] State dir contents after purge:"
+  ls -la "$OC_STATE/" 2>/dev/null || true
 fi
 
 # --- 3. Start the wrapper server ---
