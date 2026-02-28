@@ -37,35 +37,13 @@ else
   echo "[tailscale] TS_AUTHKEY not set, skipping Tailscale"
 fi
 
-# --- 2. Auto-update OpenClaw ---
-echo "[boot] Checking for OpenClaw updates..."
+# --- 2. OpenClaw version ---
 CURRENT_VERSION=$(openclaw --version 2>/dev/null || echo "unknown")
-echo "[boot] Current version: $CURRENT_VERSION"
-
-# Clean the dirty git state left by Dockerfile patches so openclaw update can work
-cd /openclaw
-git checkout -- . 2>/dev/null || true
-# Ensure public hoisting for undeclared transitive deps (strip-ansi etc.)
-grep -q 'public-hoist-pattern' .npmrc 2>/dev/null || echo 'public-hoist-pattern[]=*' >> .npmrc
-cd /app
-
-if openclaw update 2>&1; then
-  # Re-install deps after update to resolve any missing transitive packages
-  echo "[boot] Re-resolving dependencies after update..."
-  cd /openclaw
-  grep -q 'public-hoist-pattern' .npmrc 2>/dev/null || echo 'public-hoist-pattern[]=*' >> .npmrc
-  pnpm install --no-frozen-lockfile 2>&1 || true
-  cd /app
-
-  NEW_VERSION=$(openclaw --version 2>/dev/null || echo "unknown")
-  if [ "$CURRENT_VERSION" != "$NEW_VERSION" ]; then
-    echo "[boot] Updated from $CURRENT_VERSION to $NEW_VERSION"
-  else
-    echo "[boot] Already on latest ($CURRENT_VERSION)"
-  fi
-else
-  echo "[boot] Update check failed, continuing with $CURRENT_VERSION"
-fi
+echo "[boot] OpenClaw version: $CURRENT_VERSION"
+# Runtime auto-update is disabled — it breaks pnpm dep resolution (missing
+# packages like strip-ansi, @aws-sdk/client-bedrock after git pull overwrites
+# .npmrc hoisting config). Version upgrades are managed via Dockerfile
+# OPENCLAW_GIT_REF and redeployed through Railway.
 
 # --- 3. Start the wrapper server ---
 echo "[boot] Starting OpenClaw wrapper server..."
