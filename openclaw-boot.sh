@@ -83,6 +83,42 @@ if [ "${OPENCLAW_PURGE_SESSIONS:-}" = "1" ]; then
   ls -la "$OC_STATE/" 2>/dev/null || true
 fi
 
+# --- 2c. Auto-repair config (fix known invalid keys) ---
+OC_CONFIG="$OC_STATE/openclaw.json"
+if [ -f "$OC_CONFIG" ]; then
+  echo "[boot] Checking config for known issues..."
+  node -e "
+    const fs = require('fs');
+    const cfgPath = process.argv[1];
+    let changed = false;
+    try {
+      const cfg = JSON.parse(fs.readFileSync(cfgPath, 'utf8'));
+      if (cfg.channels && cfg.channels.telegram) {
+        const tg = cfg.channels.telegram;
+        const validPolicies = ['pairing', 'allowlist', 'open', 'disabled'];
+        if (tg.dmPolicy && !validPolicies.includes(tg.dmPolicy)) {
+          console.log('[boot]   Fixing telegram.dmPolicy:', tg.dmPolicy, '-> disabled');
+          tg.dmPolicy = 'disabled';
+          changed = true;
+        }
+        if ('debounceMs' in tg) {
+          console.log('[boot]   Removing unrecognized key: telegram.debounceMs');
+          delete tg.debounceMs;
+          changed = true;
+        }
+      }
+      if (changed) {
+        fs.writeFileSync(cfgPath, JSON.stringify(cfg, null, 2) + '\n');
+        console.log('[boot]   Config repaired successfully.');
+      } else {
+        console.log('[boot]   Config OK, no repairs needed.');
+      }
+    } catch (e) {
+      console.error('[boot]   Config repair failed:', e.message);
+    }
+  " "$OC_CONFIG"
+fi
+
 # --- 3. Start the wrapper server ---
 echo "[boot] Starting OpenClaw wrapper server..."
 exec node /app/src/server.js
