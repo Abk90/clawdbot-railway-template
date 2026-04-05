@@ -87,7 +87,7 @@ fi
 OC_CONFIG="$OC_STATE/openclaw.json"
 if [ -f "$OC_CONFIG" ]; then
   echo "[boot] Checking config for known issues..."
-  node -e "
+  TELEGRAM_BOT_TOKEN="${TELEGRAM_BOT_TOKEN:-}" node -e "
     const fs = require('fs');
     const cfgPath = process.argv[1];
     let changed = false;
@@ -95,16 +95,27 @@ if [ -f "$OC_CONFIG" ]; then
       const cfg = JSON.parse(fs.readFileSync(cfgPath, 'utf8'));
       if (cfg.channels && cfg.channels.telegram) {
         const tg = cfg.channels.telegram;
-        const validPolicies = ['pairing', 'allowlist', 'open', 'disabled'];
-        if (tg.dmPolicy && !validPolicies.includes(tg.dmPolicy)) {
-          console.log('[boot]   Fixing telegram.dmPolicy:', tg.dmPolicy, '-> disabled');
-          tg.dmPolicy = 'disabled';
+
+        // If TELEGRAM_BOT_TOKEN is not set, remove the entire telegram channel
+        // to prevent fatal MissingEnvVarError on botToken reference.
+        if (!process.env.TELEGRAM_BOT_TOKEN) {
+          console.log('[boot]   TELEGRAM_BOT_TOKEN not set — removing telegram channel config');
+          delete cfg.channels.telegram;
           changed = true;
-        }
-        if ('debounceMs' in tg) {
-          console.log('[boot]   Removing unrecognized key: telegram.debounceMs');
-          delete tg.debounceMs;
-          changed = true;
+        } else {
+          // Fix invalid dmPolicy
+          const validPolicies = ['pairing', 'allowlist', 'open', 'disabled'];
+          if (tg.dmPolicy && !validPolicies.includes(tg.dmPolicy)) {
+            console.log('[boot]   Fixing telegram.dmPolicy:', tg.dmPolicy, '-> disabled');
+            tg.dmPolicy = 'disabled';
+            changed = true;
+          }
+          // Remove unrecognized key
+          if ('debounceMs' in tg) {
+            console.log('[boot]   Removing unrecognized key: telegram.debounceMs');
+            delete tg.debounceMs;
+            changed = true;
+          }
         }
       }
       if (changed) {
