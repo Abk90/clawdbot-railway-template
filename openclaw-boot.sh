@@ -93,21 +93,24 @@ if [ -f "$OC_CONFIG" ]; then
     let changed = false;
     try {
       const cfg = JSON.parse(fs.readFileSync(cfgPath, 'utf8'));
-      if (cfg.channels && cfg.channels.telegram) {
-        const tg = cfg.channels.telegram;
+      if (!cfg.channels) cfg.channels = {};
 
-        // If TELEGRAM_BOT_TOKEN is not set, remove the entire telegram channel
-        // to prevent fatal MissingEnvVarError on botToken reference.
-        if (!process.env.TELEGRAM_BOT_TOKEN) {
-          console.log('[boot]   TELEGRAM_BOT_TOKEN not set — removing telegram channel config');
-          delete cfg.channels.telegram;
+      if (process.env.TELEGRAM_BOT_TOKEN) {
+        if (!cfg.channels.telegram) {
+          // Token is set but telegram section was removed — restore it
+          console.log('[boot]   TELEGRAM_BOT_TOKEN set — restoring telegram channel config');
+          cfg.channels.telegram = {
+            botToken: '\$TELEGRAM_BOT_TOKEN',
+            dmPolicy: 'open'
+          };
           changed = true;
         } else {
+          const tg = cfg.channels.telegram;
           // Fix invalid dmPolicy
           const validPolicies = ['pairing', 'allowlist', 'open', 'disabled'];
           if (tg.dmPolicy && !validPolicies.includes(tg.dmPolicy)) {
-            console.log('[boot]   Fixing telegram.dmPolicy:', tg.dmPolicy, '-> disabled');
-            tg.dmPolicy = 'disabled';
+            console.log('[boot]   Fixing telegram.dmPolicy:', tg.dmPolicy, '-> open');
+            tg.dmPolicy = 'open';
             changed = true;
           }
           // Remove unrecognized key
@@ -117,7 +120,15 @@ if [ -f "$OC_CONFIG" ]; then
             changed = true;
           }
         }
+      } else {
+        // No token — remove telegram to prevent fatal error
+        if (cfg.channels.telegram) {
+          console.log('[boot]   TELEGRAM_BOT_TOKEN not set — removing telegram channel config');
+          delete cfg.channels.telegram;
+          changed = true;
+        }
       }
+
       if (changed) {
         fs.writeFileSync(cfgPath, JSON.stringify(cfg, null, 2) + '\n');
         console.log('[boot]   Config repaired successfully.');
