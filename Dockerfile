@@ -39,9 +39,10 @@ RUN echo 'public-hoist-pattern[]=*' >> .npmrc
 # Disable pnpm minimumReleaseAge check: OpenClaw's transitive deps occasionally
 # include packages published <7 days ago (e.g. rastermill@0.3.0 published
 # 2026-05-26) which would otherwise fail the build with
-# ERR_PNPM_NO_MATURE_MATCHING_VERSION.
-RUN echo 'minimumReleaseAge=0' >> .npmrc
-RUN pnpm install --no-frozen-lockfile
+# ERR_PNPM_NO_MATURE_MATCHING_VERSION. The .npmrc form is not honored by
+# pnpm 10.x for this setting, so we force it via env + CLI flag.
+ENV NPM_CONFIG_MINIMUM_RELEASE_AGE=0
+RUN pnpm install --no-frozen-lockfile --config.minimumReleaseAge=0
 RUN pnpm build
 ENV OPENCLAW_PREFER_PNPM=1
 RUN pnpm ui:install && pnpm ui:build
