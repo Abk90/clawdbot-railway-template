@@ -36,6 +36,11 @@ RUN set -eux; \
 # Hoist undeclared transitive deps (e.g. strip-ansi used by pi-coding-agent)
 # so they are reachable under pnpm's strict resolution.
 RUN echo 'public-hoist-pattern[]=*' >> .npmrc
+# Disable pnpm minimumReleaseAge check: OpenClaw's transitive deps occasionally
+# include packages published <7 days ago (e.g. rastermill@0.3.0 published
+# 2026-05-26) which would otherwise fail the build with
+# ERR_PNPM_NO_MATURE_MATCHING_VERSION.
+RUN echo 'minimumReleaseAge=0' >> .npmrc
 RUN pnpm install --no-frozen-lockfile
 RUN pnpm build
 ENV OPENCLAW_PREFER_PNPM=1
