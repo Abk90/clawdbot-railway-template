@@ -129,6 +129,33 @@ if [ -f "$OC_CONFIG" ]; then
         }
       }
 
+      // Migrate provider api values renamed in OpenClaw v2026.6.x
+      // (old codex api ids are rejected by the new config schema and
+      // block gateway startup entirely)
+      const allowedApis = ['openai-completions','openai-responses','openai-chatgpt-responses','anthropic-messages','google-generative-ai','google-vertex','github-copilot','bedrock-converse-stream','ollama','azure-openai-responses'];
+      const providers = cfg.models && cfg.models.providers;
+      if (providers && typeof providers === 'object') {
+        for (const pid of Object.keys(providers)) {
+          const p = providers[pid];
+          if (!p || typeof p !== 'object') continue;
+          const isCodex = pid.includes('codex') || String(p.api || '').includes('codex');
+          if (p.api && !allowedApis.includes(p.api) && isCodex) {
+            console.log('[boot]   Migrating models.providers.' + pid + '.api:', p.api, '-> openai-chatgpt-responses');
+            p.api = 'openai-chatgpt-responses';
+            changed = true;
+          }
+          if (Array.isArray(p.models)) {
+            for (const m of p.models) {
+              if (m && m.api && !allowedApis.includes(m.api) && (isCodex || String(m.api).includes('codex'))) {
+                console.log('[boot]   Migrating model api in provider ' + pid + ':', m.api, '-> openai-chatgpt-responses');
+                m.api = 'openai-chatgpt-responses';
+                changed = true;
+              }
+            }
+          }
+        }
+      }
+
       if (changed) {
         fs.writeFileSync(cfgPath, JSON.stringify(cfg, null, 2) + '\n');
         console.log('[boot]   Config repaired successfully.');
