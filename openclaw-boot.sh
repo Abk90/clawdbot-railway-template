@@ -168,6 +168,15 @@ if [ -f "$OC_CONFIG" ]; then
   " "$OC_CONFIG"
 fi
 
+# --- 2d. Post-upgrade doctor repair (migrates legacy codex refs + auth profiles) ---
+# v2026.6.x renamed the codex provider route to openai/* ; doctor --fix migrates
+# legacy model refs, auth profile ids and auth order to the canonical route.
+# Idempotent — safe to run on every boot. Never blocks startup on failure.
+echo "[boot] Running openclaw doctor --fix (non-interactive, post-upgrade repairs)..."
+OPENCLAW_STATE_DIR="$OC_STATE" \
+OPENCLAW_WORKSPACE_DIR="${OPENCLAW_WORKSPACE_DIR:-${CLAWDBOT_WORKSPACE_DIR:-/data/workspace}}" \
+  timeout 120 openclaw doctor --fix --non-interactive 2>&1 | tail -40 || echo "[boot]   doctor exited non-zero (non-blocking, continuing boot)"
+
 # --- 3. Start the wrapper server ---
 echo "[boot] Starting OpenClaw wrapper server..."
 exec node /app/src/server.js
