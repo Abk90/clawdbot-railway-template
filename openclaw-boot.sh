@@ -177,6 +177,36 @@ OPENCLAW_STATE_DIR="$OC_STATE" \
 OPENCLAW_WORKSPACE_DIR="${OPENCLAW_WORKSPACE_DIR:-${CLAWDBOT_WORKSPACE_DIR:-/data/workspace}}" \
   timeout 120 openclaw doctor --fix --non-interactive 2>&1 | tail -40 || echo "[boot]   doctor exited non-zero (non-blocking, continuing boot)"
 
-# --- 3. Start the wrapper server ---
+# --- 3. Start the wrapper server (supervised, nightly preventive restart) ---
+# 4 incidents in 7 weeks (06/06, 07/07, 15/07, 21/07): the container degrades
+# after ~6-7 days of uptime (progressive process/thread leak) until the codex
+# app-server can no longer spawn ("startup aborted", then EAGAIN/Cannot fork).
+# A fresh container every night keeps it far from the degradation zone.
+# State lives on the /data volume, so nothing is lost across restarts.
 echo "[boot] Starting OpenClaw wrapper server..."
-exec node /app/src/server.js
+node /app/src/server.js &
+WRAPPER_PID=$!
+
+trap 'echo "[boot] SIGTERM received - stopping wrapper"; kill -TERM "$WRAPPER_PID" 2>/dev/null' TERM
+
+RESTART_AT="${OPENCLAW_NIGHTLY_RESTART_UTC:-03:30}"
+(
+  now=$(date +%s)
+  target=$(date -d "$RESTART_AT" +%s 2>/dev/null || echo 0)
+  if [ "$target" -gt 0 ]; then
+    [ "$target" -le "$now" ] && target=$((target + 86400))
+    # Guarantee at least 2h uptime (avoid restart loop right after a deploy)
+    [ $((target - now)) -lt 7200 ] && target=$((target + 86400))
+    echo "[boot] Preventive nightly restart scheduled for $(date -u -d "@$target" '+%Y-%m-%d %H:%M UTC')"
+    sleep $((target - now))
+    echo "[boot] Preventive nightly restart: stopping wrapper so Railway starts a fresh container..."
+    kill -TERM "$WRAPPER_PID" 2>/dev/null
+    sleep 15
+    kill -KILL "$WRAPPER_PID" 2>/dev/null
+  fi
+) &
+
+wait "$WRAPPER_PID"
+code=$?
+echo "[boot] wrapper exited (code=$code) - exiting 1 so Railway restarts the container"
+exit 1
