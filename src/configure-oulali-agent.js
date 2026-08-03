@@ -4,6 +4,8 @@ import { pathToFileURL } from "node:url";
 
 export const OULALI_GROUP_ID = "-5247758900";
 export const OULALI_AGENT_ID = "oulali-coordinator";
+export const OPENCLAW_CONTROL_UI_ORIGIN =
+  "https://clawdbot-railway-template-production-b8d4.up.railway.app";
 export const OULALI_ALLOWED_SENDERS = [
   "7532850730", // Ahmed Belkora
   "7080572503", // Abderrahim Moumen
@@ -56,7 +58,17 @@ function ensureObject(parent, key) {
 export function applyOulaliConfig(config, options = {}) {
   const groupId = String(options.groupId ?? OULALI_GROUP_ID);
   const allowedSenders = (options.allowedSenders ?? OULALI_ALLOWED_SENDERS).map(String);
+  const controlUiOrigin = String(options.controlUiOrigin ?? OPENCLAW_CONTROL_UI_ORIGIN);
   const before = JSON.stringify(config);
+
+  const gateway = ensureObject(config, "gateway");
+  const controlUi = ensureObject(gateway, "controlUi");
+  const allowedOrigins = Array.isArray(controlUi.allowedOrigins)
+    ? controlUi.allowedOrigins.filter((origin) => typeof origin === "string" && origin !== "*")
+    : [];
+  if (!allowedOrigins.includes(controlUiOrigin)) allowedOrigins.push(controlUiOrigin);
+  controlUi.allowedOrigins = allowedOrigins;
+  controlUi.dangerouslyAllowHostHeaderOriginFallback = false;
 
   const channels = ensureObject(config, "channels");
   const telegram = ensureObject(channels, "telegram");
@@ -145,6 +157,11 @@ export function configureFile(configPath) {
   const config = JSON.parse(raw);
   const changed = applyOulaliConfig(config, {
     groupId: process.env.OPENCLAW_OULALI_GROUP_ID || OULALI_GROUP_ID,
+    controlUiOrigin:
+      process.env.OPENCLAW_CONTROL_UI_ORIGIN ||
+      (process.env.RAILWAY_PUBLIC_DOMAIN
+        ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}`
+        : OPENCLAW_CONTROL_UI_ORIGIN),
   });
   if (!changed) return false;
 
