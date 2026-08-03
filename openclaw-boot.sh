@@ -26,13 +26,15 @@ if [ -n "$TS_AUTHKEY" ]; then
   done
 
   echo "[tailscale] Connecting to Tailscale network..."
-  tailscale up \
+  if tailscale up \
     --authkey="$TS_AUTHKEY" \
     --hostname="${TS_HOSTNAME:-openclaw-railway}" \
-    --reset
-
-  TS_IP=$(tailscale ip -4 2>/dev/null || echo "pending")
-  echo "[tailscale] Connected! IP: $TS_IP"
+    --reset; then
+    TS_IP=$(tailscale ip -4 2>/dev/null || echo "pending")
+    echo "[tailscale] Connected! IP: $TS_IP"
+  else
+    echo "[tailscale] WARNING: connection failed; continuing without Tailscale"
+  fi
 else
   echo "[tailscale] TS_AUTHKEY not set, skipping Tailscale"
 fi

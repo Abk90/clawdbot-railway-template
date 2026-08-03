@@ -5,7 +5,7 @@ builder = "dockerfile"
 startCommand = "bash openclaw-boot.sh"
 healthcheckPath = "/setup/healthz"
 healthcheckTimeout = 300
-restartPolicyType = "on_failure"
+restartPolicyType = "always"
 
 [variables]
 PORT = "8080"
