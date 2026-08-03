@@ -170,7 +170,13 @@ if [ -f "$OC_CONFIG" ]; then
   " "$OC_CONFIG"
 fi
 
-# --- 2d. Post-upgrade doctor repair (migrates legacy codex refs + auth profiles) ---
+# --- 2d. Project group safety policy ---
+if [ -f "$OC_CONFIG" ] && [ "${OPENCLAW_OULALI_GROUP_ENABLED:-1}" = "1" ]; then
+  echo "[boot] Applying restricted Pr Oulali Telegram coordinator policy..."
+  OPENCLAW_CONFIG_PATH="$OC_CONFIG" node /app/src/configure-oulali-agent.js
+fi
+
+# --- 2e. Post-upgrade doctor repair (migrates legacy codex refs + auth profiles) ---
 # v2026.6.x renamed the codex provider route to openai/* ; doctor --fix migrates
 # legacy model refs, auth profile ids and auth order to the canonical route.
 # Idempotent — safe to run on every boot. Never blocks startup on failure.
