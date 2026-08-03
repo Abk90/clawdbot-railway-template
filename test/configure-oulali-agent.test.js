@@ -5,6 +5,7 @@ import {
   OULALI_AGENT_ID,
   OULALI_ALLOWED_SENDERS,
   OULALI_GROUP_ID,
+  OPENCLAW_CONTROL_UI_ORIGIN,
   applyOulaliConfig,
 } from "../src/configure-oulali-agent.js";
 
@@ -12,6 +13,8 @@ test("adds a fail-closed Oulali Telegram route without removing main", () => {
   const config = { channels: { telegram: { groups: { "*": { requireMention: false } } } } };
 
   assert.equal(applyOulaliConfig(config), true);
+  assert.deepEqual(config.gateway.controlUi.allowedOrigins, [OPENCLAW_CONTROL_UI_ORIGIN]);
+  assert.equal(config.gateway.controlUi.dangerouslyAllowHostHeaderOriginFallback, false);
   assert.equal(config.channels.telegram.dmPolicy, "allowlist");
   assert.deepEqual(config.channels.telegram.allowFrom, ["7532850730"]);
   assert.equal(config.channels.telegram.groupPolicy, "allowlist");
@@ -51,6 +54,12 @@ test("adds a fail-closed Oulali Telegram route without removing main", () => {
 
 test("is idempotent and preserves unrelated agents, bindings, and explicit groups", () => {
   const config = {
+    gateway: {
+      controlUi: {
+        allowedOrigins: ["*", "http://127.0.0.1:18789"],
+        dangerouslyAllowHostHeaderOriginFallback: true,
+      },
+    },
     channels: { telegram: { groups: { "-100999": { requireMention: true } } } },
     agents: { list: [{ id: "main", default: true }, { id: "other" }] },
     bindings: [{ agentId: "other", match: { channel: "telegram", accountId: "ally" } }],
@@ -58,6 +67,11 @@ test("is idempotent and preserves unrelated agents, bindings, and explicit group
 
   assert.equal(applyOulaliConfig(config), true);
   assert.equal(applyOulaliConfig(config), false);
+  assert.deepEqual(config.gateway.controlUi.allowedOrigins, [
+    "http://127.0.0.1:18789",
+    OPENCLAW_CONTROL_UI_ORIGIN,
+  ]);
+  assert.equal(config.gateway.controlUi.dangerouslyAllowHostHeaderOriginFallback, false);
   assert.equal(config.channels.telegram.groups["-100999"].requireMention, true);
   assert.equal(config.agents.list.some((agent) => agent.id === "other"), true);
   assert.equal(config.bindings.some((binding) => binding.agentId === "other"), true);
