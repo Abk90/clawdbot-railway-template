@@ -130,6 +130,8 @@ export function applyGotionConfig(config, options = {}) {
     id: GOTION_AGENT_ID,
     name: "Coordinateur Gotion",
     identity: { name: "Coordinateur Gotion" },
+    model: { primary: "deepseek/deepseek-v4-flash" },
+    thinkingDefault: "off",
     skills: [],
     tools: {
       allow: ["session_status"],
