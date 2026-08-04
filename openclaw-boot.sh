@@ -176,7 +176,13 @@ if [ -f "$OC_CONFIG" ] && [ "${OPENCLAW_OULALI_GROUP_ENABLED:-1}" = "1" ]; then
   OPENCLAW_CONFIG_PATH="$OC_CONFIG" node /app/src/configure-oulali-agent.js
 fi
 
-# --- 2e. Post-upgrade doctor repair (migrates legacy codex refs + auth profiles) ---
+# --- 2e. Gotion project group safety policy ---
+if [ -f "$OC_CONFIG" ] && [ "${OPENCLAW_GOTION_GROUP_ENABLED:-1}" = "1" ]; then
+  echo "[boot] Applying restricted Gotion Telegram coordinator policy..."
+  OPENCLAW_CONFIG_PATH="$OC_CONFIG" node /app/src/configure-gotion-agent.js
+fi
+
+# --- 2f. Post-upgrade doctor repair (migrates legacy codex refs + auth profiles) ---
 # v2026.6.x renamed the codex provider route to openai/* ; doctor --fix migrates
 # legacy model refs, auth profile ids and auth order to the canonical route.
 # Idempotent — safe to run on every boot. Never blocks startup on failure.
