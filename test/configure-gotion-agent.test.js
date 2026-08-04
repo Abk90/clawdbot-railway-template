@@ -54,6 +54,8 @@ test("adds a fail-closed Gotion Telegram route without removing other projects",
   assert.match(group.systemPrompt, /aucune écriture Odoo ne doit être tentée/);
 
   const agent = config.agents.list.find((item) => item.id === GOTION_AGENT_ID);
+  assert.deepEqual(agent.model, { primary: "deepseek/deepseek-v4-flash" });
+  assert.equal(agent.thinkingDefault, "off");
   assert.deepEqual(agent.tools.allow, ["session_status"]);
   assert.equal(agent.tools.deny.includes("exec"), true);
   assert.equal(agent.tools.deny.includes("message"), true);
