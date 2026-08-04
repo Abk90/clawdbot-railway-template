@@ -10,6 +10,7 @@ import os
 from pathlib import Path
 import sys
 import xmlrpc.client
+from zoneinfo import ZoneInfo
 
 
 PROJECT_ID = 265
@@ -77,7 +78,7 @@ def build_report(tasks: list[dict]) -> str:
     now = datetime.now(timezone.utc)
     lines = [
         "🔎 Contrôle Gotion — lecture seule Odoo #265",
-        f"Passage : {now.astimezone().strftime('%d/%m/%Y %H:%M %Z')}",
+        f"Passage : {now.astimezone(ZoneInfo('Africa/Casablanca')).strftime('%d/%m/%Y %H:%M %Z')}",
         "",
         "Priorité immédiate : faire confirmer le positionnement des 5 000 m² de rouleaux, puis l'eau et les zones réellement libres avant tout GO.",
         "",
