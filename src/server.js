@@ -8,6 +8,13 @@ import express from "express";
 import httpProxy from "http-proxy";
 import * as tar from "tar";
 
+import {
+  GOTION_AGENT_ID,
+  GOTION_RUNTIME_COMMANDS,
+  parseGatewayJsonOutput,
+  runtimeStatusFromGatewayPayload,
+} from "./gotion-runtime-check.js";
+
 /** @type {Set<string>} */
 const warnedDeprecatedEnv = new Set();
 
@@ -91,6 +98,7 @@ process.env.OPENCLAW_GATEWAY_TOKEN = OPENCLAW_GATEWAY_TOKEN;
 const INTERNAL_GATEWAY_PORT = Number.parseInt(process.env.INTERNAL_GATEWAY_PORT ?? "18789", 10);
 const INTERNAL_GATEWAY_HOST = process.env.INTERNAL_GATEWAY_HOST ?? "127.0.0.1";
 const GATEWAY_TARGET = `http://${INTERNAL_GATEWAY_HOST}:${INTERNAL_GATEWAY_PORT}`;
+const GATEWAY_WS_TARGET = `ws://${INTERNAL_GATEWAY_HOST}:${INTERNAL_GATEWAY_PORT}`;
 
 // Always run the built-from-source CLI entry directly to avoid PATH/global-install mismatches.
 const OPENCLAW_ENTRY = process.env.OPENCLAW_ENTRY?.trim() || "/openclaw/dist/entry.js";
@@ -160,6 +168,14 @@ let lastGatewayError = null;
 let lastGatewayExit = null;
 let lastDoctorOutput = null;
 let lastDoctorAt = null;
+let gotionRuntime = {
+  checked: false,
+  ok: false,
+  checkedAt: null,
+  availableCommands: [],
+  missingCommands: [...GOTION_RUNTIME_COMMANDS],
+  error: null,
+};
 
 function sleep(ms) {
   return new Promise((r) => setTimeout(r, ms));
@@ -203,6 +219,68 @@ async function probeGateway() {
     }
   }
   return false;
+}
+
+async function refreshGotionRuntimeStatus() {
+  const params = JSON.stringify({
+    agentId: GOTION_AGENT_ID,
+    provider: "telegram",
+    scope: "both",
+    includeArgs: false,
+  });
+  const result = await runCmd(
+    OPENCLAW_NODE,
+    clawArgs([
+      "gateway",
+      "call",
+      "commands.list",
+      "--params",
+      params,
+      "--url",
+      GATEWAY_WS_TARGET,
+      "--token",
+      OPENCLAW_GATEWAY_TOKEN,
+      "--timeout",
+      "15000",
+      "--json",
+    ]),
+  );
+
+  const checkedAt = new Date().toISOString();
+  if (result.code !== 0) {
+    gotionRuntime = {
+      checked: true,
+      ok: false,
+      checkedAt,
+      availableCommands: [],
+      missingCommands: [...GOTION_RUNTIME_COMMANDS],
+      error: "commands.list RPC failed",
+    };
+    console.error(`[gotion-runtime] ${gotionRuntime.error} (code=${result.code})`);
+    return gotionRuntime;
+  }
+
+  try {
+    gotionRuntime = runtimeStatusFromGatewayPayload(
+      parseGatewayJsonOutput(result.output),
+      checkedAt,
+    );
+    const summary = gotionRuntime.ok
+      ? `ready (${gotionRuntime.availableCommands.join(", ")})`
+      : `missing commands: ${gotionRuntime.missingCommands.join(", ")}`;
+    console[gotionRuntime.ok ? "log" : "error"](`[gotion-runtime] ${summary}`);
+  } catch {
+    gotionRuntime = {
+      checked: true,
+      ok: false,
+      checkedAt,
+      availableCommands: [],
+      missingCommands: [...GOTION_RUNTIME_COMMANDS],
+      error: "commands.list returned invalid JSON",
+    };
+    console.error(`[gotion-runtime] ${gotionRuntime.error}`);
+  }
+  return gotionRuntime;
 }
 
 async function startGateway() {
@@ -362,6 +440,7 @@ app.get("/healthz", async (_req, res) => {
       lastExit: lastGatewayExit,
       lastDoctorAt,
     },
+    gotionRuntime,
   });
 });
 
@@ -1291,6 +1370,7 @@ const server = app.listen(PORT, "0.0.0.0", async () => {
       await setAllowedOrigins();
       await ensureGatewayRunning();
       console.log("[wrapper] gateway ready");
+      await refreshGotionRuntimeStatus();
     } catch (err) {
       console.error(`[wrapper] gateway failed to start at boot: ${String(err)}`);
     }

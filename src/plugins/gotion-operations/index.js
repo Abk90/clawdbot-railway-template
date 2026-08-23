@@ -129,6 +129,7 @@ export default definePluginEntry({
   name: "Gotion Operations Guard",
   description: "Dossiers chantier et exécution Odoo à double validation.",
   register(api) {
+    api.logger.info("[gotion-operations] registering runtime tools and commands");
     api.registerTool((context) => ({
       name: "gotion_case_record",
       label: "Enregistrer un dossier Gotion",
@@ -443,5 +444,9 @@ export default definePluginEntry({
         }
       },
     });
+
+    api.logger.info(
+      "[gotion-operations] registered tools=5 commands=gotion_status,gotion_actor,gotion_approve,gotion_execute",
+    );
   },
 });
