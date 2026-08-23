@@ -293,15 +293,33 @@ export default definePluginEntry({
       channels: ["telegram"],
       handler: async (ctx) => {
         try {
+          const dashboard = await runOperation(api, {
+            operation: "dashboard",
+            requester_sender_id: String(ctx.senderId || ""),
+          });
+          const actorLines = (dashboard.actors || []).map((actor) => {
+            const report = actor.daily_report_required ? "rapport quotidien" : "sans rapport obligatoire";
+            return `• ${actor.name} — ${actor.role} — ${actor.language} — ${report}`;
+          });
+          const caseLines = Object.entries(dashboard.cases || {}).map(
+            ([status, count]) => `• ${status} : ${count}`,
+          );
+          const proposalLines = Object.entries(dashboard.proposals || {}).map(
+            ([status, count]) => `• ${status} : ${count}`,
+          );
           return {
-            text: JSON.stringify(
-              await runOperation(api, {
-                operation: "dashboard",
-                requester_sender_id: String(ctx.senderId || ""),
-              }),
-              null,
-              2,
-            ),
+            text: [
+              "📋 État Gotion",
+              "",
+              "Acteurs autorisés :",
+              ...(actorLines.length ? actorLines : ["• aucun"]),
+              "",
+              "Dossiers :",
+              ...(caseLines.length ? caseLines : ["• aucun dossier ouvert"]),
+              "",
+              "Propositions Odoo :",
+              ...(proposalLines.length ? proposalLines : ["• aucune proposition"]),
+            ].join("\n"),
           };
         } catch (error) {
           return { text: `⚠️ ${String(error.message || error)}` };

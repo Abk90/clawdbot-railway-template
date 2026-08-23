@@ -189,6 +189,22 @@ async function waitForGatewayReady(opts = {}) {
   return false;
 }
 
+async function probeGateway() {
+  const paths = ["/openclaw", "/clawdbot", "/"];
+  for (const p of paths) {
+    try {
+      const res = await fetch(`${GATEWAY_TARGET}${p}`, {
+        method: "GET",
+        signal: AbortSignal.timeout(1_500),
+      });
+      if (res) return true;
+    } catch {
+      // Try the next compatible Control UI path.
+    }
+  }
+  return false;
+}
+
 async function startGateway() {
   if (gatewayProc) return;
   if (!isConfigured()) throw new Error("Gateway cannot start: not configured");

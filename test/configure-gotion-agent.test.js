@@ -61,8 +61,8 @@ test("adds a fail-closed Gotion Telegram route without removing other projects",
 
   const agent = config.agents.list.find((item) => item.id === GOTION_AGENT_ID);
   assert.deepEqual(agent.model, {
-    primary: "google/gemini-2.5-flash",
-    fallbacks: ["deepseek/deepseek-v4-flash"],
+    primary: "openai/gpt-5.5",
+    fallbacks: ["deepseek/deepseek-v4-flash", "google/gemini-2.5-flash"],
   });
   assert.equal(agent.thinkingDefault, "low");
   assert.deepEqual(agent.tools.allow, ["session_status", ...GOTION_OPERATION_TOOLS]);

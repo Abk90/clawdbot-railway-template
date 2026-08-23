@@ -202,8 +202,8 @@ export function applyGotionConfig(config, options = {}) {
     name: "Coordinateur Gotion",
     identity: { name: "Coordinateur Gotion" },
     model: {
-      primary: "google/gemini-2.5-flash",
-      fallbacks: ["deepseek/deepseek-v4-flash"],
+      primary: "openai/gpt-5.5",
+      fallbacks: ["deepseek/deepseek-v4-flash", "google/gemini-2.5-flash"],
     },
     thinkingDefault: "low",
     skills: [],
