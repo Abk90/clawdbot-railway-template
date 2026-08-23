@@ -96,7 +96,7 @@ Le bot ne convertit jamais des plateaux en m² et ne mélange pas le stock chant
 
 ### Nouvel ouvrier
 
-Dans le groupe, on ne partage jamais le numéro CIN, la date de naissance, le téléphone, l'adresse, le taux détaillé ou les documents RH. Le chef annonce seulement : nom, date d'entrée, chantier/équipe, statut et disponibilité des documents en privé.
+Dans le groupe, on ne partage jamais le numéro CIN, la date de naissance, le téléphone, l'adresse, le taux ou salaire, ni les documents RH. Le chef annonce seulement : nom, date d'entrée, chantier/équipe, statut et disponibilité en privé de la CIN, de la photo badge et du taux validé par Ahmed, sans recopier le montant.
 
 La proposition Odoo devient une tâche contrôlée couvrant : vérification privée, régime CNSS, taux confirmé, fiches PB/MB, badge, validation visuelle Ahmed, impression/test Youssef et premier pointage.
 

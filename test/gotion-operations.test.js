@@ -98,6 +98,56 @@ test("refuses sensitive identity fields in a group case", (t) => {
   assert.match(result.error, /donnée sensible interdite/);
 });
 
+test("refuses a worker daily rate in a group case", (t) => {
+  const { tool } = harness(t);
+  const result = tool(
+    {
+      operation: "case_record",
+      requester_sender_id: OWNER,
+      case_type: "worker",
+      summary: "nouvel ouvrier",
+      facts: { net_rate: 150 },
+    },
+    1,
+  );
+  assert.equal(result.ok, false);
+  assert.match(result.error, /donnée sensible interdite/);
+});
+
+test("a field actor cannot read another actor's case", (t) => {
+  const { tool } = harness(t);
+  for (const [telegramId, name] of [["9999912345", "Chef A"], ["9999912346", "Chef B"]]) {
+    tool({
+      operation: "actor_upsert",
+      requester_sender_id: OWNER,
+      telegram_id: telegramId,
+      name,
+      role: "chef_chantier",
+      language: "fr",
+      active: true,
+    });
+  }
+  const recorded = tool({
+    operation: "case_record",
+    requester_sender_id: "9999912345",
+    case_type: "daily_report",
+    work_date: "2026-08-23",
+    external_ref: "rapport-chef-a",
+    summary: "rapport du chef A",
+    facts: {},
+  });
+  const denied = tool(
+    {
+      operation: "case_get",
+      requester_sender_id: "9999912346",
+      case_id: recorded.result.id,
+    },
+    1,
+  );
+  assert.equal(denied.ok, false);
+  assert.match(denied.error, /propres dossiers/);
+});
+
 test("prepares and approves but does not execute an Odoo note", (t) => {
   const { tool } = harness(t);
   const recorded = tool({
