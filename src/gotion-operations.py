@@ -57,6 +57,10 @@ SENSITIVE_KEY_FRAGMENTS = {
     "phone",
     "address",
     "wage",
+    "salary",
+    "salaire",
+    "net_rate",
+    "daily_rate",
 }
 
 REQUIRED_FIELDS = {
@@ -97,7 +101,7 @@ REQUIRED_FIELDS = {
         "start_date",
         "site",
         "cnss_status",
-        "net_rate",
+        "rate_confirmed_private",
         "worker_status",
         "photo_collected_private",
     ],
@@ -137,7 +141,10 @@ QUESTIONS = {
     "start_date": ("Quelle est la date réelle d'entrée sur chantier ?", "شنو هو نهار الدخول الفعلي للشانطي؟"),
     "site": ("Quel chantier et quelle équipe ?", "فأي شانطي ومع أي فرقة؟"),
     "cnss_status": ("Déclaré CNSS : oui ou non, après confirmation d'Ahmed ?", "CNSS: مصرح به ولا لا، من بعد تأكيد أحمد؟"),
-    "net_rate": ("Quel taux net/jour Ahmed a-t-il confirmé ?", "شحال هو الثمن الصافي فالنهار لي أكد أحمد؟"),
+    "rate_confirmed_private": (
+        "Confirme seulement si le taux validé par Ahmed a été reçu en privé ; ne donne aucun montant ici.",
+        "أكد غير واش الثمن لي صادق عليه أحمد توصلتو به فالخاص؛ ما تكتب حتى مبلغ هنا.",
+    ),
     "worker_status": ("Ouvrier ou chef d'équipe ?", "عامل ولا رئيس فرقة؟"),
     "photo_collected_private": ("La photo chantier pour le badge a-t-elle été reçue en privé ?", "واش توصلنا بتصويرة الشانطي ديال البادج فالخاص؟"),
     "report_date": ("Ce rapport concerne quelle date ?", "هاد التقرير ديال شنو هو النهار؟"),
@@ -510,10 +517,12 @@ def case_record(db: sqlite3.Connection, payload: dict[str, Any]) -> dict[str, An
 
 def case_get(db: sqlite3.Connection, payload: dict[str, Any]) -> dict[str, Any]:
     sender_id = str(payload.get("requester_sender_id") or "").strip()
-    actor_row(db, sender_id)
+    requester = actor_row(db, sender_id)
     row = db.execute("SELECT * FROM cases WHERE id=?", (str(payload.get("case_id") or ""),)).fetchone()
     if not row:
         fail("dossier introuvable")
+    if requester["role"] not in MANAGER_ROLES and row["actor_id"] != sender_id:
+        fail("un acteur terrain ne peut lire que ses propres dossiers")
     return row_to_case(db, row)
 
 
