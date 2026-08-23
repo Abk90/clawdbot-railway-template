@@ -49,6 +49,7 @@ test("adds a fail-closed Gotion Telegram route without removing other projects",
   assert.equal(group.tools.deny.includes("exec"), true);
   assert.equal(group.tools.deny.includes("message"), true);
   assert.match(group.systemPrompt, /projet Odoo #265/);
+  assert.match(group.systemPrompt, /ne mentionne aucun bootstrap/);
   assert.match(group.systemPrompt, /gotion_case_record/);
   assert.match(group.systemPrompt, /trois questions/);
   assert.match(group.systemPrompt, /arabe marocain\/darija/);

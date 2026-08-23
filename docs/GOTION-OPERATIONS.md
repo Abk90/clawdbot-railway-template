@@ -16,6 +16,20 @@ Le coordinateur Telegram du groupe `Projet Gotion — Pilotage International —
 
 Le bot ne confirme jamais une commande, ne valide jamais une réception ou un transfert, ne crée pas de facture ou paiement, et ne publie pas de données RH privées.
 
+## Authentification OpenAI par la souscription
+
+Le moteur conversationnel Gotion doit utiliser l’authentification Codex liée à la souscription ChatGPT, pas le solde séparé d’une clé API OpenAI.
+
+Depuis la conversation **privée** avec `@Openclaw_belkora_bot` :
+
+```text
+/login codex
+```
+
+Ouvrir ensuite le lien OpenAI fourni, saisir le code d’appareil et valider avec le compte abonné. Ne jamais copier ce code dans le groupe. Après confirmation, envoyer `/new` dans le groupe Gotion pour ouvrir une session propre, puis faire un test sans écriture Odoo.
+
+Si le bot indique que l’authentification est expirée, refaire uniquement cette procédure privée. La clé `OPENAI_API_KEY` et la souscription ChatGPT ont des facturations distinctes ; une clé API sans crédit ne doit pas être confondue avec l’accès Codex de la souscription.
+
 ## 1. Ajouter un chef de chantier
 
 L'acteur doit d'abord être présent dans le groupe. Ahmed relève et vérifie son identifiant Telegram numérique exact, puis envoie lui-même :
