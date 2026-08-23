@@ -9,4 +9,6 @@ test("server exposes /healthz endpoint", () => {
   const src = fs.readFileSync(new URL("../src/server.js", import.meta.url), "utf8");
   assert.match(src, /app\.get\("\/healthz"/);
   assert.match(src, /async function probeGateway\(\)/);
+  assert.match(src, /refreshGotionRuntimeStatus/);
+  assert.match(src, /gotionRuntime,/);
 });
