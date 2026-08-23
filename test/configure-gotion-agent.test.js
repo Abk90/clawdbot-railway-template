@@ -5,6 +5,8 @@ import {
   GOTION_AGENT_ID,
   GOTION_ALLOWED_SENDERS,
   GOTION_GROUP_ID,
+  GOTION_OPERATION_TOOLS,
+  GOTION_PLUGIN_PATH,
   OPENCLAW_CONTROL_UI_ORIGIN,
   applyGotionConfig,
 } from "../src/configure-gotion-agent.js";
@@ -39,27 +41,35 @@ test("adds a fail-closed Gotion Telegram route without removing other projects",
   assert.equal(config.channels.telegram.groups["-5247758900"].requireMention, true);
 
   const group = config.channels.telegram.groups[GOTION_GROUP_ID];
-  assert.equal(group.requireMention, true);
+  assert.equal(group.requireMention, false);
   assert.equal(group.groupPolicy, "allowlist");
   assert.deepEqual(group.allowFrom, GOTION_ALLOWED_SENDERS);
   assert.deepEqual(group.skills, []);
-  assert.deepEqual(group.tools.allow, ["session_status"]);
+  assert.deepEqual(group.tools.allow, ["session_status", ...GOTION_OPERATION_TOOLS]);
   assert.equal(group.tools.deny.includes("exec"), true);
   assert.equal(group.tools.deny.includes("message"), true);
-  assert.match(group.systemPrompt, /projet 265/);
-  assert.match(group.systemPrompt, /5 000 m²/);
-  assert.match(group.systemPrompt, /Ne modifie jamais Odoo, paiement/i);
-  assert.match(group.systemPrompt, /Definition of Done/);
-  assert.match(group.systemPrompt, /Mustapha est arabophone/);
-  assert.match(group.systemPrompt, /aucune écriture Odoo ne doit être tentée/);
+  assert.match(group.systemPrompt, /projet Odoo #265/);
+  assert.match(group.systemPrompt, /gotion_case_record/);
+  assert.match(group.systemPrompt, /trois questions/);
+  assert.match(group.systemPrompt, /arabe marocain\/darija/);
+  assert.match(group.systemPrompt, /\/gotion_approve/);
+  assert.match(group.systemPrompt, /restent en brouillon/);
+  assert.deepEqual(config.tools.media.image.attachments, { mode: "all", maxAttachments: 4 });
+  assert.equal(config.tools.media.audio.models[0].model, "gpt-4o-transcribe");
+  assert.equal(config.plugins.entries["gotion-operations"].enabled, true);
+  assert.equal(config.plugins.load.paths.includes(GOTION_PLUGIN_PATH), true);
 
   const agent = config.agents.list.find((item) => item.id === GOTION_AGENT_ID);
-  assert.deepEqual(agent.model, { primary: "deepseek/deepseek-v4-flash" });
-  assert.equal(agent.thinkingDefault, "off");
-  assert.deepEqual(agent.tools.allow, ["session_status"]);
+  assert.deepEqual(agent.model, {
+    primary: "google/gemini-2.5-flash",
+    fallbacks: ["deepseek/deepseek-v4-flash"],
+  });
+  assert.equal(agent.thinkingDefault, "low");
+  assert.deepEqual(agent.tools.allow, ["session_status", ...GOTION_OPERATION_TOOLS]);
   assert.equal(agent.tools.deny.includes("exec"), true);
   assert.equal(agent.tools.deny.includes("message"), true);
   assert.equal(agent.tools.elevated.enabled, false);
+  assert.equal(agent.tts.auto, "tagged");
   assert.equal(config.agents.list.some((item) => item.id === "oulali-coordinator"), true);
   assert.equal(config.bindings.some((item) => item.agentId === "oulali-coordinator"), true);
 
@@ -78,4 +88,19 @@ test("is idempotent", () => {
   assert.equal(applyGotionConfig(config), true);
   assert.equal(applyGotionConfig(config), false);
   assert.equal(config.bindings.filter((binding) => binding.agentId === GOTION_AGENT_ID).length, 1);
+});
+
+test("preserves exact field actors added by the owner", () => {
+  const config = {
+    channels: {
+      telegram: {
+        groups: {
+          [GOTION_GROUP_ID]: { allowFrom: ["9999912345"], requireMention: true },
+        },
+      },
+    },
+  };
+  applyGotionConfig(config);
+  assert.equal(config.channels.telegram.groups[GOTION_GROUP_ID].allowFrom.includes("9999912345"), true);
+  assert.equal(config.channels.telegram.groups[GOTION_GROUP_ID].requireMention, false);
 });

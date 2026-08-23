@@ -1,0 +1,56 @@
+{
+  "id": "gotion-operations",
+  "name": "Gotion Operations Guard",
+  "description": "Collecte terrain, dossiers, contrôles et propositions Odoo Gotion avec approbation propriétaire séparée.",
+  "activation": {
+    "onStartup": true
+  },
+  "contracts": {
+    "tools": [
+      "gotion_case_record",
+      "gotion_case_get",
+      "gotion_case_list",
+      "gotion_odoo_lookup",
+      "gotion_action_prepare"
+    ]
+  },
+  "commandAliases": [
+    {
+      "name": "gotion_status",
+      "kind": "runtime-slash"
+    },
+    {
+      "name": "gotion_actor",
+      "kind": "runtime-slash"
+    },
+    {
+      "name": "gotion_approve",
+      "kind": "runtime-slash"
+    },
+    {
+      "name": "gotion_execute",
+      "kind": "runtime-slash"
+    }
+  ],
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "pythonPath": {
+        "type": "string"
+      },
+      "scriptPath": {
+        "type": "string"
+      },
+      "stateDb": {
+        "type": "string"
+      },
+      "ownerSenderId": {
+        "type": "string"
+      },
+      "groupId": {
+        "type": "string"
+      }
+    }
+  }
+}
