@@ -201,6 +201,23 @@ echo "[boot] Starting OpenClaw wrapper server..."
 node /app/src/server.js &
 WRAPPER_PID=$!
 
+# Install deterministic Gotion report reminders only after the Gateway is
+# reachable. The jobs are idempotent by versioned name and never invoke an LLM.
+if [ "${OPENCLAW_GOTION_GROUP_ENABLED:-1}" = "1" ]; then
+  (
+    for i in $(seq 1 45); do
+      if OPENCLAW_STATE_DIR="$OC_STATE" openclaw health >/dev/null 2>&1; then
+        OPENCLAW_STATE_DIR="$OC_STATE" \
+        GOTION_OPERATIONS_DB="${GOTION_OPERATIONS_DB:-/data/workspace/gotion-coordinator/operations.sqlite3}" \
+          node /app/src/configure-gotion-cron.js || true
+        exit 0
+      fi
+      sleep 2
+    done
+    echo "[boot] Gotion cron configuration skipped: gateway not ready after 90s."
+  ) &
+fi
+
 trap 'echo "[boot] SIGTERM received - stopping wrapper"; kill -TERM "$WRAPPER_PID" 2>/dev/null' TERM
 
 RESTART_AT="${OPENCLAW_NIGHTLY_RESTART_UTC:-03:30}"

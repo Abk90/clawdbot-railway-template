@@ -57,6 +57,7 @@ RUN apt-get update \
     ca-certificates \
     curl \
     iptables \
+    python3 \
   && rm -rf /var/lib/apt/lists/*
 
 # Install Tailscale
